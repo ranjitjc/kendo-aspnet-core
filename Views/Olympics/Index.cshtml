@@ -1,0 +1,268 @@
+@{
+    ViewData["Title"] = "Olympics Dashboard";
+}
+<h2>@ViewData["Title"].</h2><a href="/Olympics/discipline">Disciplies</a>
+<h3>@ViewData["Message"]</h3>
+
+
+ <!--close left column-->
+<div id="main-section" class="col-xs-12 column">
+    <!--open main column-->
+    <div id="main-section-header" class="row">
+        <h2 id="team-efficiency" class="col-xs-3">USA Medal status</h2>
+        <div id="dateFilter" class="col-xs-9">
+            <div class="period-wrapper">
+                <label for="start-date" class="select-period">from</label>
+                <input id="start-date" />
+                <span class="k-invalid-msg" data-for="start-date"></span>
+            </div>
+            <div class="period-wrapper">
+                <label for="end-date" class="select-period">To</label>
+                <input id="end-date" />
+                <span class="k-invalid-msg" data-for="end-date"></span>
+            </div>
+        </div>
+        <div style="clear:both;"></div>
+    </div>
+
+    <div id="regional-sales" class="main-section-content row">
+
+
+        <div id="statsContainer" class="row">
+            <div id="ordersContainer" class="col-xs-12 stats-graph">
+                <h3 class="section-header">Medals</h3>
+                <span id="orders-label"></span>
+                <div class="sparkline-container">
+                    <div id="orders" style="height:100px"></div>
+                    <div id="orders-no-data" class="overlay">
+                        <div>No data available</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+ <!--close main column-->
+
+
+@section scripts{
+    <script type="text/javascript">
+        $(document).ready(function() {
+            var scale = chroma.scale(["#ade1fb", "#097dc6"]).domain([1, 100]),
+                selectedShape = null,
+                selectedCountry = "USA";
+
+                 $('#end-date').kendoDatePicker({
+                    value: new Date(2005, 7, 1),
+                    change: onCriteriaChange
+                });
+
+                $('#start-date').kendoDatePicker({
+                    value: new Date(1980, 0, 1),
+                    change: onCriteriaChange
+                });
+
+                var orderDetailsData = [];
+                var customers = [];
+                var countryCustomers = []
+                var topSellingProducts = [];
+
+
+                $.when($.ajax({
+                    url: "../data/olympics/medals.json",
+                    dataType: "json",
+                    type: "GET",
+                    success: function(data) {
+                        orderDetailsData = data;
+                    }
+                }),
+           	    $.ajax({
+                    url: "../data/olympics/disc_image.json",
+                    dataType: "json",
+                    type: "GET",
+                    success: function(data) {
+                        topSellingProducts = data;
+                    }
+                })).then(function(){
+                    initWidgets();
+                    onCriteriaChange();
+                })
+
+
+                 function initWidgets(){
+
+                    $("#orders").kendoSparkline({
+                        theme: "metro",
+                        type: "column",
+                        autoBind: false,
+                        dataSource: {
+                            transport: {
+                            read: function(options) {
+                                var from = new Date(options.data.fromDate);
+                                var to = new Date(options.data.toDate);
+                                var result = [];
+
+                                for (var i = 0; i < orderDetailsData.length; i++){
+                                    var order = orderDetailsData[i];
+                                    if (order.NOC_CountryRegion == options.data.country) {
+                                        var orderDate = kendo.parseDate(order.Edition)
+                                        if (orderDate > from && orderDate < to) {
+                                            result.push({
+                                                "year": orderDate,
+                                                "value": 1
+                                            });
+                                        }
+                                    }
+                                }
+                                options.success(result);
+                            }
+                        }
+                    },
+                    series: [{
+                        categoryField: "year",
+                        aggregate: "sum",
+                        color: "#1996e4",
+                        gap: 0.2,
+                        field: "value",
+                    }],
+                    categoryAxis: [{
+                       justified :  true,
+                        type: "date",
+                        baseUnit: "years",
+
+
+                    }]
+                });
+
+            }
+
+
+            function onCriteriaChange() {
+                var marketShare = $("#market-share").data("kendoChart"),
+                    topSellingProducts = $("#top-selling-products").data("kendoChart"),
+                    //revenue = $("#revenue").data("kendoSparkline"),
+                    orders = $("#orders").data("kendoSparkline"),
+                    //customers = $("#customers").data("kendoSparkline"),
+                    fromDate = $("#start-date").data("kendoDatePicker").value(),
+                    toDate = $("#end-date").data("kendoDatePicker").value();
+                getCountryOrdersTotal(fromDate, toDate);
+
+                // marketShare.dataSource.read({
+                //     country: selectedCountry,
+                //     fromDate: kendo.format("{0:dd/MM/yyyy hh:mm:ss}", fromDate),
+                //     toDate: kendo.format("{0:dd/MM/yyyy hh:mm:ss}", toDate)
+                // });
+                // topSellingProducts.dataSource.read({
+                //     country: selectedCountry,
+                //     fromDate: kendo.format("{0:MM/dd/yyyy hh:mm:ss}", fromDate),
+                //     toDate: kendo.format("{0:MM/dd/yyyy hh:mm:ss}", toDate)
+                // });
+                // revenue.dataSource.read({
+                //     country: selectedCountry,
+                //     fromDate: kendo.format("{0:dd/MM/yyyy hh:mm:ss}", fromDate),
+                //     toDate: kendo.format("{0:dd/MM/yyyy hh:mm:ss}", toDate)
+                // });
+                orders.dataSource.read({
+                    country: selectedCountry,
+                    fromDate: kendo.format("{0:dd/MM/yyyy hh:mm:ss}", fromDate),
+                    toDate: kendo.format("{0:dd/MM/yyyy hh:mm:ss}", toDate)
+                });
+                // customers.dataSource.read({
+                //     country: selectedCountry,
+                //     fromDate: kendo.format("{0:dd/MM/yyyy hh:mm:ss}", fromDate),
+                //     toDate: kendo.format("{0:dd/MM/yyyy hh:mm:ss}", toDate)
+                // });
+
+                //listCustomers(selectedCountry);
+
+                setSparkLinesWidths();
+            }
+
+
+
+            function setSparkLinesWidths() {
+                var containerWidth = $(".sparkline-container").parent().width(),
+                    getSparkLines = $(".k-sparkline"),
+                    sparkLineWidth = (80 * containerWidth) / 100;
+
+                getSparkLines.each(function() {
+                    $(this).data("kendoSparkline").setOptions({
+                        chartArea: {
+                            width: sparkLineWidth
+                        }
+                    });
+                });
+
+               //$("#top-selling-products").data("kendoChart").resize();
+                //$("#market-share").data("kendoChart").resize();
+            }
+
+            function onShapeCreated(e) {
+                var color = scale(e.shape.dataItem.properties.sales).hex();
+                e.shape.fill(color);
+            }
+
+            function onShapeClick(e) {
+                if (selectedShape) {
+                    var sales = selectedShape.dataItem.properties.sales;
+                    var color = scale(sales).hex();
+                    selectedShape.options.set("fill.color", color);
+                    selectedShape.options.set("stroke.color", "white");
+                    selectedShape.dataItem.properties.selected = false;
+                }
+
+                e.shape.options.set("fill.color", "#0c669f");
+                e.shape.options.set("stroke.color", "black");
+                e.shape.dataItem.properties.selected = true;
+                selectedShape = e.shape;
+                selectedCountry = selectedShape.dataItem.properties.name;
+
+                onCriteriaChange();
+            }
+
+            function onShapeMouseEnter(e) {
+                e.shape.options.set("fill.color", "#0c669f");
+            }
+
+            function onShapeMouseLeave(e) {
+                if (!e.shape.dataItem.properties.selected) {
+                    var sales = e.shape.dataItem.properties.sales;
+                    var color = scale(sales).hex();
+                    e.shape.options.set("fill.color", color);
+                    e.shape.options.set("stroke.color", "white");
+                }
+            }
+
+            function onTopProductsDataBound() {
+                var items = this.dataSource.data().length;
+                $("#products-no-data").toggle(items === 0);
+            }
+
+            function getCountryOrdersTotal(fromDate, toDate) {
+                var total = 0;
+                var from = new Date(fromDate);
+                var to = new Date(toDate);
+
+                for (var i = 0; i < orderDetailsData.length; i++){
+                  var order = orderDetailsData[i];
+                  if (order.NOC_CountryRegion == selectedCountry) {
+                     var orderDate = kendo.parseDate(order.Edition)
+                      if (orderDate > from && orderDate < to) {
+                          total++;
+                      }
+                  }
+                }
+
+                $("#orders-label").text(total);
+                $("#orders-no-data").toggle(total === 0);
+            }
+
+
+
+            //$(window).resize(resizeMap);
+
+        });
+    </script>
+}

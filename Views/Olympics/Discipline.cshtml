@@ -1,0 +1,96 @@
+@{
+    ViewData["Title"] = "Discipline";
+}
+<h2>@ViewData["Title"].</h2>
+<h3>@ViewData["Message"]</h3>
+
+<div id="main-section" class="col-xs-12 column">
+    <!--open main column-->
+    <div id="main-section-header" class="row">
+        <!--<h2 id="team-efficiency" class="col-xs-3">SALES & ORDERS</h2>-->
+        <div style="clear:both;"></div>
+    </div>
+    <div id="orders"></div>
+</div>
+<!--close main column-->
+
+@section scripts{
+    <script type="text/javascript">
+        $(document).ready(function() {
+
+
+             initGrid();
+
+            function initGrid() {
+                $('#orders').kendoGrid({
+                    dataSource: {
+                        transport: {
+                            read: {
+                                url: "../data/olympics/disc_image.json"
+                            }
+                        },
+                        pageSize: 20,
+                        schema: {
+                            parse: function(response) {
+                                var result = [];
+                                for (var i = 0; i < response.length; i++) {
+                                    var discipline = {
+                                        DisciplineID: response[i].DisciplineID,
+                                        SportID: response[i].SportID,
+                                        Discipline: response[i].Discipline,
+                                        DiscImage: response[i].DiscImage,
+                                    };
+                                    result.push(discipline);
+                                }
+                                return result;
+                            },
+                            model: {
+                                id: "DisciplineID",
+                                fields: {
+                                    DisciplineID: {
+                                        editable: false
+                                    },
+                                    Discipline: {
+                                        editable: false
+                                    },
+                                }
+                            }
+                        }
+                    },
+                    dataBound: onDataBound,
+                    columns: [{
+                        field: "DisciplineID",
+                        title: "DISCIPLINE ID"
+                    }, {
+                        field: "Discipline",
+                        title: "DISCIPLINE",
+                    }, {
+                        field: "SportID",
+                        title: "SPORT"
+                    // }, {
+                    //     field: "EmployeeID",
+                    //     title: "EMPLOYEE",
+                    //     values: employees
+                    }, {
+                        field: "DiscImage",
+                        title: "IMAGE"
+                    }],
+                    sortable: true,
+                    pageable: true,
+                    navigatable: true,
+                    filterable: true,
+                    scrollable: true,
+                    selectable: "column",
+                    //detailTemplate: kendo.template($("#order-detail-template").html()),
+                    //detailInit: detailInit
+                })
+            }
+
+            function onDataBound(e) {
+                var firstRow = this.tbody.find("tr.k-master-row").first();
+                this.expandRow(firstRow);
+            }
+
+        });
+    </script>
+}

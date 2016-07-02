@@ -1,0 +1,146 @@
+@{
+    ViewData["Title"] = "Sales Orders";
+}
+<h2>@ViewData["Title"].</h2>
+<h3>@ViewData["Message"]</h3>
+
+<div id="main-section" class="col-xs-12 column">
+    <!--open main column-->
+    <div id="main-section-header" class="row">
+        <!--<h2 id="team-efficiency" class="col-xs-3">SALES & ORDERS</h2>-->
+        <div style="clear:both;"></div>
+    </div>
+    <div id="orders"></div>
+</div>
+<!--close main column-->
+
+@section scripts{
+    <script type="text/javascript">
+        $(document).ready(function() {
+            var employees = [{
+                "value": 1,
+                "text": "Nancy Davolio"
+            }, {
+                "value": 2,
+                "text": "Andrew Fuller"
+            }, {
+                "value": 3,
+                "text": "Janet Leverling"
+            }, {
+                "value": 4,
+                "text": "Margaret Peacock"
+            }, {
+                "value": 5,
+                "text": "Steven Buchanan"
+            }, {
+                "value": 6,
+                "text": "Michael Suyama"
+            }, {
+                "value": 7,
+                "text": "Robert King"
+            }, {
+                "value": 8,
+                "text": "Laura Callahan"
+            }, {
+                "value": 9,
+                "text": "Anne Dodsworth"
+            }];
+
+            var shippers = [{
+                "value": 1,
+                "text": "Speedy Express"
+            }, {
+                "value": 2,
+                "text": "United Package"
+            }, {
+                "value": 3,
+                "text": "Federal Shipping"
+            }];
+
+             initGrid();
+
+            function initGrid() {
+                $('#orders').kendoGrid({
+                    dataSource: {
+                        transport: {
+                            read: {
+                                url: "../data/orders.json"
+                            }
+                        },
+                        pageSize: 20,
+                        schema: {
+                            parse: function(response) {
+                                var result = [];
+                                for (var i = 0; i < response.length; i++) {
+                                    var product = {
+                                        OrderID: response[i].OrderID,
+                                        OrderDate: kendo.parseDate(response[i].OrderDate),
+                                        CustomerID: response[i].CustomerID,
+                                        EmployeeID: response[i].EmployeeID,
+                                        ShipCountry: response[i].ShipCountry,
+                                        ShipVia: response[i].ShipVia,
+                                        ShipName: response[i].ShipName,
+                                        ShipCity: response[i].ShipCity,
+                                        ShipAddress: response[i].ShipAddress,
+                                        ShipPostalCode: response[i].ShipPostalCode,
+                                    };
+                                    result.push(product);
+                                }
+                                return result;
+                            },
+                            model: {
+                                id: "OrderID",
+                                fields: {
+                                    OrderID: {
+                                        editable: false
+                                    },
+                                    OrderDate: {
+                                        defaultValue: new Date()
+                                    },
+                                }
+                            }
+                        }
+                    },
+                    dataBound: onDataBound,
+                    columns: [{
+                        field: "OrderID",
+                        title: "ORDER ID"
+                    }, {
+                        field: "OrderDate",
+                        title: "ORDER DATE",
+                        format: "{0: yyyy-MM-dd}",
+                        width: 150
+                    }, {
+                        field: "CustomerID",
+                        title: "CUSTOMER"
+                    }, {
+                        field: "EmployeeID",
+                        title: "EMPLOYEE",
+                        values: employees
+                    }, {
+                        field: "ShipCountry",
+                        title: "SHIP COUNTRY"
+                    }, {
+                        field: "ShipVia",
+                        title: "SHIP VIA",
+                        values: shippers
+                    }],
+                    sortable: true,
+                    pageable: true,
+                    navigatable: true,
+                    filterable: true,
+                    scrollable: true,
+                    selectable: "column",
+                    //detailTemplate: kendo.template($("#order-detail-template").html()),
+                    //detailInit: detailInit
+                })
+            }
+
+            function onDataBound(e) {
+                var firstRow = this.tbody.find("tr.k-master-row").first();
+                this.expandRow(firstRow);
+            }
+
+        });
+    </script>
+}
